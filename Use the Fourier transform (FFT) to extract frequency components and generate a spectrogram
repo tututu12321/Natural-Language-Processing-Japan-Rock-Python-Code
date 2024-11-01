@@ -1,0 +1,41 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.fftpack import fft
+from scipy.signal import spectrogram
+
+# サンプリング周波数と時間軸を設定
+sampling_rate = 8000  # 8kHzのサンプリング
+duration = 5  # 音声の長さ（秒）
+t = np.linspace(0, duration, int(sampling_rate * duration), endpoint=False)
+
+# ダミー音声信号を生成（例：2つの異なる周波数のサイン波の合成）
+freq1 = 440  # A4音（440Hz）
+freq2 = 880  # A5音（880Hz）
+audio_signal = 0.5 * np.sin(2 * np.pi * freq1 * t) + 0.5 * np.sin(2 * np.pi * freq2 * t)
+
+# フーリエ変換を実行し、周波数成分を抽出
+n = len(audio_signal)
+audio_fft = fft(audio_signal)
+frequencies = np.fft.fftfreq(n, 1 / sampling_rate)
+magnitude = np.abs(audio_fft) / n  # 正規化
+
+# 周波数成分のプロット（FFT）
+plt.figure(figsize=(12, 6))
+plt.plot(frequencies[:n // 2], magnitude[:n // 2])  # 正の周波数のみ表示
+plt.title("Frequency Components (FFT)")
+plt.xlabel("Frequency (Hz)")
+plt.ylabel("Magnitude")
+plt.grid()
+plt.show()
+
+# スペクトログラムを計算
+f, t_spec, Sxx = spectrogram(audio_signal, fs=sampling_rate)
+
+# スペクトログラムを表示
+plt.figure(figsize=(12, 6))
+plt.pcolormesh(t_spec, f, 10 * np.log10(Sxx), shading='gouraud')
+plt.title("Spectrogram")
+plt.xlabel("Time (s)")
+plt.ylabel("Frequency (Hz)")
+plt.colorbar(label="Intensity (dB)")
+plt.show()
