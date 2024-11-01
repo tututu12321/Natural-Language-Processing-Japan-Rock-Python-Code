@@ -1,0 +1,38 @@
+# 必要なライブラリのインストール
+!pip install scikit-learn
+
+# 必要なライブラリのインポート
+from sklearn.decomposition import TruncatedSVD, NMF
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# サンプルテキストデータ
+documents = [
+    "I love machine learning and data science",
+    "Artificial intelligence is a growing field",
+    "Natural language processing is a part of AI",
+    "Deep learning is a subset of machine learning",
+    "Data science includes statistics and programming",
+]
+
+# テキストを数値化（TF-IDF）
+vectorizer = TfidfVectorizer(stop_words='english')
+X = vectorizer.fit_transform(documents)
+
+# 特異値分解 (SVD) を使用したトピック抽出
+svd = TruncatedSVD(n_components=2, random_state=42)  # トピック数を2に設定
+X_svd = svd.fit_transform(X)
+
+print("SVDによるトピック抽出結果:")
+terms = vectorizer.get_feature_names_out()
+for i, component in enumerate(svd.components_):
+    terms_in_topic = [terms[i] for i in component.argsort()[:-5 - 1:-1]]
+    print(f"トピック {i+1}: {', '.join(terms_in_topic)}")
+
+# 非負値行列分解 (NMF) を使用したトピック抽出
+nmf = NMF(n_components=2, random_state=42)  # トピック数を2に設定
+X_nmf = nmf.fit_transform(X)
+
+print("\nNMFによるトピック抽出結果:")
+for i, component in enumerate(nmf.components_):
+    terms_in_topic = [terms[i] for i in component.argsort()[:-5 - 1:-1]]
+    print(f"トピック {i+1}: {', '.join(terms_in_topic)}")
