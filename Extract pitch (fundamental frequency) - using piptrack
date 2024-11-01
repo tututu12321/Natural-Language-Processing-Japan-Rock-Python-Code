@@ -1,0 +1,57 @@
+# Import necessary libraries
+import numpy as np
+import librosa
+import librosa.display
+import matplotlib.pyplot as plt
+
+# Step 1: Generate a dummy audio signal (sine wave)
+sr = 22050  # Sampling rate
+duration = 2.0  # seconds
+frequency = 440  # Frequency in Hertz (A4 note)
+t = np.linspace(0, duration, int(sr * duration), endpoint=False)  # Time variable
+y = 0.5 * np.sin(2 * np.pi * frequency * t)  # Generate sine wave with the given frequency
+
+# Step 2: Plot the waveform of the generated signal
+plt.figure(figsize=(10, 4))
+plt.plot(t[:1000], y[:1000])  # Plotting a short segment to visualize
+plt.title("Generated Dummy Audio Signal (Sine Wave)")
+plt.xlabel("Time (seconds)")
+plt.ylabel("Amplitude")
+plt.show()
+
+# Step 3: Extract pitch (fundamental frequency) - using piptrack
+pitches, magnitudes = librosa.core.piptrack(y=y, sr=sr)
+pitch_values = []
+
+for t in range(pitches.shape[1]):
+    index = magnitudes[:, t].argmax()
+    pitch = pitches[index, t]
+    if pitch > 0:  # Only consider positive pitches
+        pitch_values.append(pitch)
+
+average_pitch = np.mean(pitch_values)
+print(f"Average Pitch (F0): {average_pitch:.2f} Hz")
+
+# Step 4: Compute MFCCs (Mel-frequency cepstral coefficients)
+mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+
+# Step 5: Plot the MFCCs
+plt.figure(figsize=(10, 4))
+librosa.display.specshow(mfccs, sr=sr, x_axis='time')
+plt.colorbar()
+plt.title("MFCCs of Dummy Signal")
+plt.xlabel("Time")
+plt.ylabel("MFCC Coefficients")
+plt.show()
+
+# Step 6: Calculate Zero-Crossing Rate
+zero_crossings = librosa.feature.zero_crossing_rate(y)
+
+# Plot Zero-Crossing Rate
+plt.figure(figsize=(10, 4))
+plt.plot(zero_crossings[0], label="Zero Crossing Rate")
+plt.xlabel("Time Frames")
+plt.ylabel("Zero Crossing Rate")
+plt.title("Zero Crossing Rate Over Time")
+plt.legend()
+plt.show()
