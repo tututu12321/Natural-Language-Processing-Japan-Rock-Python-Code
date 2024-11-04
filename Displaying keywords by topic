@@ -1,0 +1,57 @@
+# 必要なライブラリのインストール
+!pip install -q gensim bertopic nltk umap-learn hdbscan
+
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from gensim.corpora import Dictionary
+from gensim.models.ldamodel import LdaModel
+from bertopic import BERTopic
+import nltk
+from umap import UMAP
+import hdbscan
+
+# punktデータセットのダウンロード（トークン化に必要）
+nltk.download('punkt')
+
+# サンプル歌詞データ
+lyrics = [
+    "The sound of guitar echoes through the night",
+    "An amplifier with an op-amp brings clarity",
+    "Playing guitar with powerful chords",
+    "The op-amp circuit shapes the guitar tone",
+    "Guitar solos are full of emotion",
+    "The music fills the room with power"
+]
+
+# 1. LDAによるトピックモデリング
+print("=== LDA Topic Modeling ===")
+# トークン化
+tokenized_lyrics = [nltk.word_tokenize(sentence.lower()) for sentence in lyrics]
+
+# 辞書とコーパスを作成
+dictionary = Dictionary(tokenized_lyrics)
+corpus = [dictionary.doc2bow(text) for text in tokenized_lyrics]
+
+# LDAモデルの訓練
+lda_model = LdaModel(corpus=corpus, id2word=dictionary, num_topics=2, random_state=42)
+
+# トピックごとのキーワード表示
+for idx, topic in lda_model.print_topics(-1):
+    print(f"トピック {idx+1}: {topic}")
+
+# 2. BERTopicによるトピックモデリング（ニューラルトピックモデル）
+print("\n=== BERTopic (Neural Topic Model) ===")
+
+# UMAPとHDBSCANの設定（少数データ向けに調整）
+umap_model = UMAP(n_neighbors=min(2, len(lyrics) - 1), min_dist=0.1, n_components=5, random_state=42)
+hdbscan_model = hdbscan.HDBSCAN(min_cluster_size=2, min_samples=1)
+
+# BERTopicモデルの初期化と学習
+topic_model = BERTopic(language="english", umap_model=umap_model, hdbscan_model=hdbscan_model)
+topics, _ = topic_model.fit_transform(lyrics)
+
+# トピックごとのキーワード表示
+topics_info = topic_model.get_topics()
+for topic_idx, topic_words in topics_info.items():
+    if topic_words:
+        print(f"トピック {topic_idx}: {[word for word, _ in topic_words]}")
