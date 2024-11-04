@@ -1,0 +1,83 @@
+# 必要なライブラリのインストール
+!pip install -q numpy pandas tensorflow nltk
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, LSTM, Dense
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+import nltk
+
+# punktデータセットのダウンロード（トークン化に必要）
+nltk.download('punkt')
+
+# サンプル歌詞データ
+lyrics_data = """
+The sound of guitar echoes through the night
+An amplifier with an op-amp brings clarity
+Playing guitar with powerful chords
+The op-amp circuit shapes the guitar tone
+Guitar solos are full of emotion
+The music fills the room with power
+Soft melodies touch the soul
+A heartfelt ballad sung with love
+Intense rock riffs energize the crowd
+Soothing acoustic harmonies calm the mind
+"""
+
+# テキストデータの前処理
+corpus = lyrics_data.lower().split("\n")  # 各行を文として分割し、小文字に変換
+
+# トークナイザーの初期化とテキストのトークン化
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(corpus)
+total_words = len(tokenizer.word_index) + 1  # 語彙数
+
+# 入力シーケンスの作成
+input_sequences = []
+for line in corpus:
+    token_list = tokenizer.texts_to_sequences([line])[0]
+    for i in range(1, len(token_list)):
+        n_gram_sequence = token_list[:i+1]
+        input_sequences.append(n_gram_sequence)
+
+# シーケンスをパディングして同じ長さに揃える
+max_sequence_len = max([len(seq) for seq in input_sequences])
+input_sequences = np.array(pad_sequences(input_sequences, maxlen=max_sequence_len, padding='pre'))
+
+# 特徴とラベルの作成
+X, y = input_sequences[:,:-1], input_sequences[:,-1]
+y = tf.keras.utils.to_categorical(y, num_classes=total_words)
+
+# モデルの構築
+model = Sequential([
+    Embedding(total_words, 64, input_length=max_sequence_len - 1),
+    LSTM(100),
+    Dense(total_words, activation='softmax')
+])
+
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.fit(X, y, epochs=100, verbose=1)
+
+# 歌詞の自動生成関数
+def generate_lyrics(seed_text, next_words, max_sequence_len):
+    for _ in range(next_words):
+        token_list = tokenizer.texts_to_sequences([seed_text])[0]
+        token_list = pad_sequences([token_list], maxlen=max_sequence_len-1, padding='pre')
+        predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
+        
+        output_word = ""
+        for word, index in tokenizer.word_index.items():
+            if index == predicted:
+                output_word = word
+                break
+        seed_text += " " + output_word
+    return seed_text
+
+# 歌詞生成の例
+seed_text = "the sound of guitar"
+generated_lyrics = generate_lyrics(seed_text, 10, max_sequence_len)
+print("\n=== Generated Lyrics ===")
+print(generated_lyrics)
